@@ -213,7 +213,11 @@ def main(argv=None):
                    learning_rate=FLAGS.learning_rate,
                    clean_train=FLAGS.clean_train,
                    backprop_through_attack=FLAGS.backprop_through_attack,
-                   nb_filters=FLAGS.nb_filters)
+                   nb_filters=FLAGS.nb_filters,
+                   train_start=FLAGS.train_start,
+                   train_end=FLAGS.train_end,
+                   test_start=FLAGS.test_start,
+                   test_end=FLAGS.test_end)
 
 
 if __name__ == '__main__':
@@ -225,5 +229,9 @@ if __name__ == '__main__':
     flags.DEFINE_bool('backprop_through_attack', False,
                       ('If True, backprop through adversarial example '
                        'construction process during adversarial training'))
+    flags.DEFINE_integer('train_start', 1000, 'start of MNIST training samples')
+    flags.DEFINE_integer('train_end', 1500, 'end of MNIST training samples')
+    flags.DEFINE_integer('test_start', 2, 'start of MNIST test samples')
+    flags.DEFINE_integer('test_end', 3, 'end of MNIST test samples')
 
     tf.app.run()

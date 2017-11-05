@@ -195,7 +195,9 @@ def main(argv=None):
     mnist_tutorial(nb_epochs=FLAGS.nb_epochs, batch_size=FLAGS.batch_size,
                    learning_rate=FLAGS.learning_rate,
                    clean_train=FLAGS.clean_train,
-                   nb_filters=FLAGS.nb_filters)
+                   nb_filters=FLAGS.nb_filters,
+                   train_start=FLAGS.train_start,
+                   train_end=FLAGS.train_end)
 
 
 if __name__ == '__main__':
@@ -204,5 +206,7 @@ if __name__ == '__main__':
     flags.DEFINE_integer('batch_size', 128, 'Size of training batches')
     flags.DEFINE_float('learning_rate', 0.001, 'Learning rate for training')
     flags.DEFINE_bool('clean_train', True, 'Train on clean examples')
+    flags.DEFINE_integer('train_start', 1000, 'start of MNIST training samples')
+    flags.DEFINE_integer('train_end', 2000, 'end of MNIST training samples')
 
     tf.app.run()
