@@ -175,10 +175,30 @@ def mnist_tutorial(train_start=0, train_end=60000, test_start=0,
     model_train(sess, x, y, preds_2, X_train, Y_train,
                 predictions_adv=preds_2_adv_fgsm,
                 args=train_params, rng=rng)
+
+    print("Evaluate after FGSM training")
+    # evaluate the final result of the model
+    eval_params = {'batch_size': batch_size}
+    accuracy = model_eval(sess, x, y, preds_2, X_test, Y_test,
+                          args=eval_params)
+    
+    print('Test accuracy on legitimate examples: %0.4f' % accuracy)
+
+    # Accuracy of the adversarially trained model on FGSM adversarial examples
+    accuracy = model_eval(sess, x, y, preds_2_adv_fgsm, X_test,
+                          Y_test, args=eval_params)
+    print('Test accuracy on FGSM adversarial examples: %0.4f' % accuracy)
+
+    # Accuracy of the adversarially trained model on JSMA adversarial examples
+    accuracy = model_eval(sess, x, y, preds_2_adv_jsma, X_test,
+                          Y_test, args=eval_params)
+    print('Test accuracy on JSMA adversarial examples: %0.4f' % accuracy)
+
+
     model_train(sess, x, y, preds_2, X_train, Y_train,
                 predictions_adv=preds_2_adv_jsma,
                 args=train_params, rng=rng)
-
+    print("Evaluate after FGSM&JSMA training")
     # evaluate the final result of the model
     eval_params = {'batch_size': batch_size}
     accuracy = model_eval(sess, x, y, preds_2, X_test, Y_test,
@@ -222,16 +242,16 @@ def main(argv=None):
 
 if __name__ == '__main__':
     flags.DEFINE_integer('nb_filters', 64, 'Model size multiplier')
-    flags.DEFINE_integer('nb_epochs', 1, 'Number of epochs to train model')
+    flags.DEFINE_integer('nb_epochs', 6, 'Number of epochs to train model')
     flags.DEFINE_integer('batch_size', 128, 'Size of training batches')
     flags.DEFINE_float('learning_rate', 0.001, 'Learning rate for training')
     flags.DEFINE_bool('clean_train', True, 'Train on clean examples')
     flags.DEFINE_bool('backprop_through_attack', False,
                       ('If True, backprop through adversarial example '
                        'construction process during adversarial training'))
-    flags.DEFINE_integer('train_start', 1000, 'start of MNIST training samples')
-    flags.DEFINE_integer('train_end', 1500, 'end of MNIST training samples')
-    flags.DEFINE_integer('test_start', 2, 'start of MNIST test samples')
-    flags.DEFINE_integer('test_end', 3, 'end of MNIST test samples')
+    flags.DEFINE_integer('train_start', 0, 'start of MNIST training samples')
+    flags.DEFINE_integer('train_end', 100, 'end of MNIST training samples')
+    flags.DEFINE_integer('test_start', 0, 'start of MNIST test samples')
+    flags.DEFINE_integer('test_end', 10, 'end of MNIST test samples')
 
     tf.app.run()
