@@ -22,13 +22,12 @@ import os
 FLAGS = flags.FLAGS
 
 
-def mnist_tutorial(train_start=0, train_end=60000, test_start=0,
-                   test_end=10000, nb_epochs=6, batch_size=128,
-                   learning_rate=0.001,
-                   clean_train=True,
-                   testing=False,
-                   backprop_through_attack=False,
-                   nb_filters=64):
+def baseline_jsma(train_start=0, train_end=60000, test_start=0,
+                  test_end=10000, nb_epochs=6, batch_size=128,
+                  learning_rate=0.001,
+                  clean_train=True,
+                  testing=False,
+                  nb_filters=64):
     """
     MNIST cleverhans tutorial
     :param train_start: index of first training set example
@@ -42,9 +41,6 @@ def mnist_tutorial(train_start=0, train_end=60000, test_start=0,
                         before performing adversarial training.
     :param testing: if true, complete an AccuracyReport for unit tests
                     to verify that performance is adequate
-    :param backprop_through_attack: If True, backprop through adversarial
-                                    example construction process during
-                                    adversarial training.
     :param clean_train: if true, train on clean examples
     :return: an AccuracyReport object
     """
@@ -192,12 +188,14 @@ def mnist_tutorial(train_start=0, train_end=60000, test_start=0,
 
 
 def main(argv=None):
-    mnist_tutorial(nb_epochs=FLAGS.nb_epochs, batch_size=FLAGS.batch_size,
-                   learning_rate=FLAGS.learning_rate,
-                   clean_train=FLAGS.clean_train,
-                   nb_filters=FLAGS.nb_filters,
-                   train_start=FLAGS.train_start,
-                   train_end=FLAGS.train_end)
+    baseline_jsma(nb_epochs=FLAGS.nb_epochs, batch_size=FLAGS.batch_size,
+                  learning_rate=FLAGS.learning_rate,
+                  clean_train=FLAGS.clean_train,
+                  nb_filters=FLAGS.nb_filters,
+                  train_start=FLAGS.train_start,
+                  train_end=FLAGS.train_end,
+                  test_start=FLAGS.test_start,
+                  test_end=FLAGS.test_end)
 
 
 if __name__ == '__main__':
@@ -207,6 +205,8 @@ if __name__ == '__main__':
     flags.DEFINE_float('learning_rate', 0.001, 'Learning rate for training')
     flags.DEFINE_bool('clean_train', True, 'Train on clean examples')
     flags.DEFINE_integer('train_start', 1000, 'start of MNIST training samples')
-    flags.DEFINE_integer('train_end', 2000, 'end of MNIST training samples')
+    flags.DEFINE_integer('train_end', 1500, 'end of MNIST training samples')
+    flags.DEFINE_integer('test_start', 0, 'start of MNIST test samples')
+    flags.DEFINE_integer('test_end', 50, 'end of MNIST test samples')
 
     tf.app.run()

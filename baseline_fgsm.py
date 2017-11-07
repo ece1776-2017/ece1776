@@ -22,13 +22,13 @@ import os
 FLAGS = flags.FLAGS
 
 
-def mnist_tutorial(train_start=0, train_end=60000, test_start=0,
-                   test_end=10000, nb_epochs=6, batch_size=128,
-                   learning_rate=0.001,
-                   clean_train=True,
-                   testing=False,
-                   backprop_through_attack=False,
-                   nb_filters=64):
+def baseline_fgsm(train_start=0, train_end=60000, test_start=0,
+                  test_end=10000, nb_epochs=6, batch_size=128,
+                  learning_rate=0.001,
+                  clean_train=True,
+                  testing=False,
+                  backprop_through_attack=False,
+                  nb_filters=64):
     """
     MNIST cleverhans tutorial
     :param train_start: index of first training set example
@@ -201,13 +201,15 @@ def mnist_tutorial(train_start=0, train_end=60000, test_start=0,
 
 
 def main(argv=None):
-    mnist_tutorial(nb_epochs=FLAGS.nb_epochs, batch_size=FLAGS.batch_size,
+    baseline_fgsm(nb_epochs=FLAGS.nb_epochs, batch_size=FLAGS.batch_size,
                    learning_rate=FLAGS.learning_rate,
                    clean_train=FLAGS.clean_train,
                    backprop_through_attack=FLAGS.backprop_through_attack,
                    nb_filters=FLAGS.nb_filters,
                    train_start=FLAGS.train_start,
-                   train_end=FLAGS.train_end)
+                   train_end=FLAGS.train_end,
+                   test_start=FLAGS.test_start,
+                   test_end=FLAGS.test_end)
 
 
 if __name__ == '__main__':
@@ -221,5 +223,7 @@ if __name__ == '__main__':
                        'construction process during adversarial training'))
     flags.DEFINE_integer('train_start', 1000, 'start of MNIST training samples')
     flags.DEFINE_integer('train_end', 1500, 'end of MNIST training samples')
+    flags.DEFINE_integer('test_start', 0, 'start of MNIST test samples')
+    flags.DEFINE_integer('test_end', 50, 'end of MNIST test samples')
 
     tf.app.run()
