@@ -166,7 +166,7 @@ def baseline_basic_iterative(train_start=0, train_end=60000, test_start=0,
         # training, but gives the defender the ability to anticipate how
         # the atacker will change their strategy in response to updates to
         # the defender's parameters.
-        adv_x_fgsm = tf.stop_gradient(adv_x_2)
+        adv_x_fgsm = tf.stop_gradient(adv_x_fgsm)
     preds_2_fgsm = model_2(adv_x_fgsm)
 
     # DON'T WANT TO TRAIN on FGSM adv examples yet
@@ -180,16 +180,16 @@ def baseline_basic_iterative(train_start=0, train_end=60000, test_start=0,
         report.adv_train_clean_eval = accuracy
 
         # Accuracy of the adversarially trained model on FGSM adversarial examples
-        accuracy = model_eval(sess, x, y, preds_2_adv, X_test,
-                              Y_test, args=eval_params)
-        print('Test accuracy on BIM adversarial examples: %0.4f' % accuracy)
-        report.adv_train_adv_eval = accuracy
-
-        # Accuracy of the FGSM adv trained model on JSMA adv examples
-        eval_params = {'batch_size': batch_size}
         accuracy = model_eval(sess, x, y, preds_2_fgsm, X_test,
                               Y_test, args=eval_params)
         print('Test accuracy on FGSM adversarial examples: %0.4f' % accuracy)
+        report.adv_train_adv_eval = accuracy
+
+        # Accuracy of the FGSM adv trained model on Basic Iterative adv examples
+        eval_params = {'batch_size': batch_size}
+        accuracy = model_eval(sess, x, y, preds_2_adv, X_test,
+                              Y_test, args=eval_params)
+        print('Test accuracy on BIM adversarial examples: %0.4f' % accuracy)
 
     # Perform and evaluate adversarial training
     model_train(sess, x, y, preds_2, X_train, Y_train,

@@ -22,13 +22,13 @@ import os
 FLAGS = flags.FLAGS
 
 
-def mnist_tutorial(train_start=0, train_end=60000, test_start=0,
-                   test_end=10000, nb_epochs=6, batch_size=128,
-                   learning_rate=0.001,
-                   clean_train=True,
-                   testing=False,
-                   backprop_through_attack=False,
-                   nb_filters=64):
+def baseline_basic_iterative(train_start=0, train_end=60000, test_start=0,
+                             test_end=10000, nb_epochs=6, batch_size=128,
+                             learning_rate=0.001,
+                             clean_train=True,
+                             testing=False,
+                             backprop_through_attack=False,
+                             nb_filters=64):
     """
     MNIST cleverhans tutorial
     :param train_start: index of first training set example
@@ -86,11 +86,6 @@ def mnist_tutorial(train_start=0, train_end=60000, test_start=0,
     fgsm_params = {'eps': 0.3,
                    'clip_min': 0.,
                    'clip_max': 1.}
-    bim_params = {'eps': 0.3,
-                  'eps_iter': 0.01,
-                  'nb_iter': 100,
-                  'clip_min': 0.,
-                  'clip_max': 1.}
     rng = np.random.RandomState([2017, 8, 30])
 
     if clean_train:
@@ -106,6 +101,9 @@ def mnist_tutorial(train_start=0, train_end=60000, test_start=0,
             report.clean_train_clean_eval = acc
             assert X_test.shape[0] == test_end - test_start, X_test.shape
             print('Test accuracy on legitimate examples: %0.4f' % acc)
+
+        #
+        # HERE already trained model, thus we need a new one later (model_2)
         model_train(sess, x, y, preds, X_train, Y_train, evaluate=evaluate,
                     args=train_params, rng=rng)
 
@@ -116,32 +114,17 @@ def mnist_tutorial(train_start=0, train_end=60000, test_start=0,
                 sess, x, y, preds, X_train, Y_train, args=eval_params)
             report.train_clean_train_clean_eval = acc
 
-        # Initialize the Fast Gradient Sign Method (FGSM) attack object and
+        # Initialize the FGSM attack object and
         # graph
         fgsm = FastGradientMethod(model, sess=sess)
         adv_x = fgsm.generate(x, **fgsm_params)
         preds_adv = model.get_probs(adv_x)
 
-        # Evaluate the accuracy of the MNIST model on FGSM adversarial examples
+        # Evaluate the accuracy of the MNIST model on adversarial examples
         eval_par = {'batch_size': batch_size}
         acc = model_eval(sess, x, y, preds_adv, X_test, Y_test, args=eval_par)
         print('Test accuracy on FGSM adversarial examples: %0.4f\n' % acc)
-
-        # Calculate training error
-        if testing:
-            eval_par = {'batch_size': batch_size}
-            acc = model_eval(sess, x, y, preds_adv, X_train,
-                             Y_train, args=eval_par)
-            report.train_clean_train_adv_eval = acc
-
-        # Init the Basic Iterative Method attack object and graph
-        bim = BasicIterativeMethod(model, sess=sess)
-        adv_x_2 = bim.generate(x, **bim_params)
-        preds_adv_2 = model.get_probs(adv_x_2)
-
-        # Evaluate the accuracy of the MNIST model on Basic Iterative Method adversarial examples
-        acc = model_eval(sess, x, y, preds_adv_2, X_test, Y_test, args=eval_par)
-        print('Test accuracy on Basic Iterative Method adversarial examples: %0.4f\n' % acc)
+        report.clean_train_adv_eval = acc
 
         # Calculate training error
         if testing:
@@ -155,7 +138,7 @@ def mnist_tutorial(train_start=0, train_end=60000, test_start=0,
     model_2 = make_basic_cnn(nb_filters=nb_filters)
     preds_2 = model_2(x)
     fgsm2 = FastGradientMethod(model_2, sess=sess)
-    adv_x_fgsm = fgsm2.generate(x, **fgsm_params)
+    adv_x_2 = fgsm2.generate(x, **fgsm_params)
     if not backprop_through_attack:
         # For the fgsm attack used in this tutorial, the attack has zero
         # gradient so enabling this flag does not change the gradient.
@@ -163,60 +146,78 @@ def mnist_tutorial(train_start=0, train_end=60000, test_start=0,
         # training, but gives the defender the ability to anticipate how
         # the atacker will change their strategy in response to updates to
         # the defender's parameters.
-        adv_x_fgsm = tf.stop_gradient(adv_x_fgsm)
-    preds_2_adv_fgsm = model_2(adv_x_fgsm)
+        adv_x_2 = tf.stop_gradient(adv_x_2)
+    preds_2_adv = model_2(adv_x_2)
 
-    bim2 = BasicIterativeMethod(model_2, sess=sess)
-    adv_x_bim = bim2.generate(x, **bim_params)
-    preds_2_adv_bim = model_2(adv_x_bim)
-
-    # X_train_rep = np.tile(X_train, [2, 1, 1, 1])
-    # Y_train_rep = np.tile(Y_train, [2, 1])
-    # preds_2_rep = tf.tile(preds_2, [2, 1])
-    # preds_2_adv = model_2(tf.concat([adv_x_fgsm, adv_x_bim], 0))
     #
-    # # Perform and evaluate adversarial training
-    # model_train(sess, x, y, preds_2_rep, X_train_rep, Y_train_rep,
-    #             predictions_adv=preds_2_adv,
-    #             args=train_params, rng=rng)
+    # let's generate BIM examples
+    #
+    bim_params = {'eps': 0.3,
+                  'eps_iter': 0.01,
+                  'nb_iter': 100,
+                  'clip_min': 0.,
+                  'clip_max': 1.}
+    bim = BasicIterativeMethod(model_2, sess=sess)
+    adv_x_bim = bim.generate(x, **bim_params)
+    if not backprop_through_attack:
+        # For the fgsm attack used in this tutorial, the attack has zero
+        # gradient so enabling this flag does not change the gradient.
+        # For some other attacks, enabling this flag increases the cost of
+        # training, but gives the defender the ability to anticipate how
+        # the atacker will change their strategy in response to updates to
+        # the defender's parameters.
+        adv_x_bim = tf.stop_gradient(adv_x_bim)
+    preds_2_bim = model_2(adv_x_bim)
+
+    # DON'T WANT TO TRAIN on BIM adv examples yet
 
     def evaluate_2():
-        # evaluate the final result of the model
+        # Accuracy of adversarially trained model on legitimate test inputs
         eval_params = {'batch_size': batch_size}
         accuracy = model_eval(sess, x, y, preds_2, X_test, Y_test,
                               args=eval_params)
         print('Test accuracy on legitimate examples: %0.4f' % accuracy)
+        report.adv_train_clean_eval = accuracy
 
-        # Accuracy of the adversarially trained model on FGSM adversarial examples
-        accuracy = model_eval(sess, x, y, preds_2_adv_fgsm, X_test,
+        # Accuracy of the FGSM adversarially trained model on FGSM adversarial examples
+        accuracy = model_eval(sess, x, y, preds_2_adv, X_test,
                               Y_test, args=eval_params)
         print('Test accuracy on FGSM adversarial examples: %0.4f' % accuracy)
+        report.adv_train_adv_eval = accuracy
 
-        # Accuracy of the adversarially trained model on Basic Iterative Method adversarial examples
-        accuracy = model_eval(sess, x, y, preds_2_adv_bim, X_test,
+        # Accuracy of the FGSM adv trained model on BIM adv examples
+        accuracy = model_eval(sess, x, y, preds_2_bim, X_test,
                               Y_test, args=eval_params)
-        print('Test accuracy on JSMA adversarial examples: %0.4f' % accuracy)
+        print('Test accuracy on BIM adversarial examples: %0.4f' % accuracy)
 
+    # Perform and evaluate adversarial training
     model_train(sess, x, y, preds_2, X_train, Y_train,
-                predictions_adv=preds_2_adv_fgsm, evaluate=evaluate_2,
+                predictions_adv=preds_2_adv, evaluate=evaluate_2,
                 args=train_params, rng=rng)
-    model_train(sess, x, y, preds_2, X_train, Y_train,
-                predictions_adv=preds_2_adv_bim, evaluate=evaluate_2,
-                args=train_params, rng=rng)
+
+    # Calculate training errors
+    if testing:
+        eval_params = {'batch_size': batch_size}
+        accuracy = model_eval(sess, x, y, preds_2, X_train, Y_train,
+                              args=eval_params)
+        report.train_adv_train_clean_eval = accuracy
+        accuracy = model_eval(sess, x, y, preds_2_adv, X_train,
+                              Y_train, args=eval_params)
+        report.train_adv_train_adv_eval = accuracy
 
     return report
 
 
 def main(argv=None):
-    mnist_tutorial(nb_epochs=FLAGS.nb_epochs, batch_size=FLAGS.batch_size,
-                   learning_rate=FLAGS.learning_rate,
-                   clean_train=FLAGS.clean_train,
-                   backprop_through_attack=FLAGS.backprop_through_attack,
-                   nb_filters=FLAGS.nb_filters,
-                   train_start=FLAGS.train_start,
-                   train_end=FLAGS.train_end,
-                   test_start=FLAGS.test_start,
-                   test_end=FLAGS.test_end)
+    baseline_basic_iterative(nb_epochs=FLAGS.nb_epochs, batch_size=FLAGS.batch_size,
+                             learning_rate=FLAGS.learning_rate,
+                             clean_train=FLAGS.clean_train,
+                             backprop_through_attack=FLAGS.backprop_through_attack,
+                             nb_filters=FLAGS.nb_filters,
+                             train_start=FLAGS.train_start,
+                             train_end=FLAGS.train_end,
+                             test_start=FLAGS.test_start,
+                             test_end=FLAGS.test_end)
 
 
 if __name__ == '__main__':
