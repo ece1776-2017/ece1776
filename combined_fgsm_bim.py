@@ -228,9 +228,9 @@ if __name__ == '__main__':
     flags.DEFINE_bool('backprop_through_attack', False,
                       ('If True, backprop through adversarial example '
                        'construction process during adversarial training'))
-    flags.DEFINE_integer('train_start', 1000, 'start of MNIST training samples')
-    flags.DEFINE_integer('train_end', 1500, 'end of MNIST training samples')
+    flags.DEFINE_integer('train_start', 0, 'start of MNIST training samples')
+    flags.DEFINE_integer('train_end', 100, 'end of MNIST training samples')
     flags.DEFINE_integer('test_start', 0, 'start of MNIST test samples')
-    flags.DEFINE_integer('test_end', 50, 'end of MNIST test samples')
+    flags.DEFINE_integer('test_end', 10, 'end of MNIST test samples')
 
     tf.app.run()

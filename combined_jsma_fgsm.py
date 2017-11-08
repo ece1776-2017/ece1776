@@ -95,7 +95,7 @@ def mnist_tutorial(train_start=0, train_end=60000, test_start=0,
     if clean_train:
         model = make_basic_cnn(nb_filters=nb_filters)
         preds = model.get_probs(x)
-
+        print("evaluate 1")
         def evaluate():
             # Evaluate the accuracy of the MNIST model on legitimate test
             # examples
@@ -168,63 +168,36 @@ def mnist_tutorial(train_start=0, train_end=60000, test_start=0,
     jsma2 = SaliencyMapMethod(model_2, sess=sess)
     adv_x_jsma = jsma2.generate(x, **jsma_params)
     preds_2_adv_jsma = model_2(adv_x_jsma)
+    print("evaluate 2")
+    def evaluate_2():
+        # evaluate the final result of the model
+        eval_params = {'batch_size': batch_size}
+        accuracy = model_eval(sess, x, y, preds_2, X_test, Y_test,
+                              args=eval_params)
+        print('Test accuracy on legitimate examples: %0.4f' % accuracy)
+
+        # Accuracy of the adversarially trained model on FGSM adversarial examples
+        accuracy = model_eval(sess, x, y, preds_2_adv_fgsm, X_test,
+                              Y_test, args=eval_params)
+        print('Test accuracy on FGSM adversarial examples: %0.4f' % accuracy)
+
+        # Accuracy of the adversarially trained model on Basic Iterative Method adversarial examples
+        accuracy = model_eval(sess, x, y, preds_2_adv_jsma, X_test,
+                              Y_test, args=eval_params)
+        print('Test accuracy on JSMA adversarial examples: %0.4f' % accuracy)
+
 
     # Perform and evaluate adversarial training
     # want to combine preds but can't figure out the data types... ???
     # hope this training style works
     model_train(sess, x, y, preds_2, X_train, Y_train,
-                predictions_adv=preds_2_adv_fgsm,
+                predictions_adv=preds_2_adv_fgsm,evaluate = evaluate_2,
                 args=train_params, rng=rng)
-
-    print("Evaluate after FGSM training")
-    # evaluate the final result of the model
-    eval_params = {'batch_size': batch_size}
-    accuracy = model_eval(sess, x, y, preds_2, X_test, Y_test,
-                          args=eval_params)
-    
-    print('Test accuracy on legitimate examples: %0.4f' % accuracy)
-
-    # Accuracy of the adversarially trained model on FGSM adversarial examples
-    accuracy = model_eval(sess, x, y, preds_2_adv_fgsm, X_test,
-                          Y_test, args=eval_params)
-    print('Test accuracy on FGSM adversarial examples: %0.4f' % accuracy)
-
-    # Accuracy of the adversarially trained model on JSMA adversarial examples
-    accuracy = model_eval(sess, x, y, preds_2_adv_jsma, X_test,
-                          Y_test, args=eval_params)
-    print('Test accuracy on JSMA adversarial examples: %0.4f' % accuracy)
-
-
-    model_train(sess, x, y, preds_2, X_train, Y_train,
+    print("========")
+    model_train(sess, x, y, preds_2, X_train, Y_train,evaluate = evaluate_2,
                 predictions_adv=preds_2_adv_jsma,
                 args=train_params, rng=rng)
-    print("Evaluate after FGSM&JSMA training")
-    # evaluate the final result of the model
-    eval_params = {'batch_size': batch_size}
-    accuracy = model_eval(sess, x, y, preds_2, X_test, Y_test,
-                          args=eval_params)
-    print('Test accuracy on legitimate examples: %0.4f' % accuracy)
-
-    # Accuracy of the adversarially trained model on FGSM adversarial examples
-    accuracy = model_eval(sess, x, y, preds_2_adv_fgsm, X_test,
-                          Y_test, args=eval_params)
-    print('Test accuracy on FGSM adversarial examples: %0.4f' % accuracy)
-
-    # Accuracy of the adversarially trained model on JSMA adversarial examples
-    accuracy = model_eval(sess, x, y, preds_2_adv_jsma, X_test,
-                          Y_test, args=eval_params)
-    print('Test accuracy on JSMA adversarial examples: %0.4f' % accuracy)
-
-    # Calculate training errors
-    if testing:
-        eval_params = {'batch_size': batch_size}
-        accuracy = model_eval(sess, x, y, preds_2, X_train, Y_train,
-                              args=eval_params)
-        report.train_adv_train_clean_eval = accuracy
-        accuracy = model_eval(sess, x, y, preds_2_adv_fgsm, X_train,
-                              Y_train, args=eval_params)
-        report.train_adv_train_adv_eval = accuracy
-
+   
     return report
 
 
@@ -238,6 +211,16 @@ def main(argv=None):
                    train_end=FLAGS.train_end,
                    test_start=FLAGS.test_start,
                    test_end=FLAGS.test_end)
+    print("*****************************")
+    mnist_tutorial(nb_epochs=FLAGS.nb_epochs, batch_size=FLAGS.batch_size,
+                   learning_rate=FLAGS.learning_rate,
+                   clean_train=FLAGS.clean_train,
+                   backprop_through_attack=FLAGS.backprop_through_attack,
+                   nb_filters=FLAGS.nb_filters,
+                   train_start=FLAGS.train_start,
+                   train_end=4000,
+                   test_start=FLAGS.test_start,
+                   test_end=400)
 
 
 if __name__ == '__main__':
@@ -250,8 +233,9 @@ if __name__ == '__main__':
                       ('If True, backprop through adversarial example '
                        'construction process during adversarial training'))
     flags.DEFINE_integer('train_start', 0, 'start of MNIST training samples')
-    flags.DEFINE_integer('train_end', 100, 'end of MNIST training samples')
+    flags.DEFINE_integer('train_end', 2000, 'end of MNIST training samples')
     flags.DEFINE_integer('test_start', 0, 'start of MNIST test samples')
-    flags.DEFINE_integer('test_end', 10, 'end of MNIST test samples')
+    flags.DEFINE_integer('test_end', 200, 'end of MNIST test samples')
+
 
     tf.app.run()
