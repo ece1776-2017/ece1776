@@ -192,7 +192,7 @@ def baseline_basic_iterative(train_start=0, train_end=60000, test_start=0,
 
     # Perform and evaluate adversarial training
     model_train(sess, x, y, preds_2, X_train, Y_train,
-                predictions_adv=preds_2_adv, evaluate=evaluate_2,
+                predictions_adv=[preds_2_adv], evaluate=evaluate_2,
                 args=train_params, rng=rng)
 
     # Calculate training errors
@@ -229,9 +229,9 @@ if __name__ == '__main__':
     flags.DEFINE_bool('backprop_through_attack', False,
                       ('If True, backprop through adversarial example '
                        'construction process during adversarial training'))
-    flags.DEFINE_integer('train_start', 1000, 'start of MNIST training samples')
-    flags.DEFINE_integer('train_end', 1500, 'end of MNIST training samples')
+    flags.DEFINE_integer('train_start', 0, 'start of MNIST training samples')
+    flags.DEFINE_integer('train_end', 60000, 'end of MNIST training samples')
     flags.DEFINE_integer('test_start', 0, 'start of MNIST test samples')
-    flags.DEFINE_integer('test_end', 50, 'end of MNIST test samples')
+    flags.DEFINE_integer('test_end', 10000, 'end of MNIST test samples')
 
     tf.app.run()
