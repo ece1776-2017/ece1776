@@ -66,12 +66,12 @@ def mnist_tutorial(train_start=0, train_end=60000, test_start=0,
                                                   train_end=train_end,
                                                   test_start=test_start,
                                                   test_end=test_end)
-
+    source_samples = batch_size
     # Use label smoothing
     # Hopefully this doesn't screw up JSMA...
-    assert Y_train.shape[1] == 10
-    label_smooth = .1
-    Y_train = Y_train.clip(label_smooth / 9., 1. - label_smooth)
+    # assert Y_train.shape[1] == 10
+    # label_smooth = .1
+    # Y_train = Y_train.clip(label_smooth / 9., 1. - label_smooth)
 
     # Define input TF placeholder
     x = tf.placeholder(tf.float32, shape=(None, 28, 28, 1))
@@ -87,14 +87,8 @@ def mnist_tutorial(train_start=0, train_end=60000, test_start=0,
     fgsm_params = {'eps': 0.3,
                    'clip_min': 0.,
                    'clip_max': 1.}
-    en_params = {'binary_search_steps': 1,
-             #'y': None,
-             #'y_target':None,
-              
-             'max_iterations': 100,
-             'learning_rate': 0.1,
-             'batch_size': batch_size,
-             'initial_const': 10}
+
+
     rng = np.random.RandomState([2017, 8, 30])
 
     if clean_train:
@@ -137,16 +131,22 @@ def mnist_tutorial(train_start=0, train_end=60000, test_start=0,
             acc = model_eval(sess, x, y, preds_adv, X_train,
                              Y_train, args=eval_par)
             report.train_clean_train_adv_eval = acc
-
+        ################################################################
         # Init the Elastic Network Method attack object and graph
         en = ElasticNetMethod(model, back='tf', sess=sess)
+        en_params = {'binary_search_steps': 1,
+             #'y': None,
+             'max_iterations': 100,
+             'learning_rate': 0.1,
+             'batch_size': source_samples,
+             'initial_const': 10}
         adv_x_2 = en.generate(x, **en_params)
         preds_adv_2 = model.get_probs(adv_x_2)
-        en_eval_params = {'batch_size': batch_size}
+        en_eval_params = {'batch_size': source_samples}
         # Evaluate the accuracy of the MNIST model on EN adversarial examples
         acc = model_eval(sess, x, y, preds_adv_2, X_test, Y_test, args=en_eval_params)
         print('Test accuracy on EN adversarial examples: %0.4f\n' % acc)
-
+        ###############################################################
         # Calculate training error
         if testing:
             eval_par = {'batch_size': batch_size}
@@ -170,22 +170,16 @@ def mnist_tutorial(train_start=0, train_end=60000, test_start=0,
         # the defender's parameters.
         adv_x_2 = tf.stop_gradient(adv_x_fgsm)
     preds_2_adv_fgsm = model_2(adv_x_fgsm)
-
+    ##########################################
     en2 = ElasticNetMethod(model_2, back='tf',sess=sess)
-    one_hot = np.zeros((10, 10))
-    one_hot[np.arange(10), np.arange(10)] = 1
-    adv_ys = np.array([one_hot] * test_end,
-                          dtype=np.float32).reshape((test_end *
-                                                     10, 10))
+
     
     en_params = {'binary_search_steps': 1,
-             #'y': None,
-             'y_target':adv_ys,
-              
-             'max_iterations': 100,
-             'learning_rate': 0.1,
-             'batch_size': batch_size,
-             'initial_const': 10}
+         #'y': None,
+         'max_iterations': 100,
+         'learning_rate': 0.1,
+         'batch_size': source_samples,
+         'initial_const': 10}
     adv_x_en = en2.generate(x, **en_params)
     
     preds_2_adv_en = model_2(adv_x_en)
@@ -202,7 +196,8 @@ def mnist_tutorial(train_start=0, train_end=60000, test_start=0,
                               Y_test, args=eval_params)
         print('Test accuracy on FGSM adversarial examples: %0.4f' % accuracy)
 
-        # Accuracy of the adversarially trained model on Basic Iterative Method adversarial examples
+        # Accuracy of the adversarially trained model on EN Method adversarial examples
+        en_eval_params = {'batch_size': source_samples}
         accuracy = model_eval(sess, x, y, preds_2_adv_en, X_test,
                               Y_test, args=en_eval_params)
         print('Test accuracy on EN adversarial examples: %0.4f' % accuracy)
@@ -212,7 +207,11 @@ def mnist_tutorial(train_start=0, train_end=60000, test_start=0,
     # want to combine preds but can't figure out the data types... ???
     # hope this training style works
     preds_2_adv = [preds_2_adv_fgsm, preds_2_adv_en]
-    
+    train_params = {
+    'nb_epochs': nb_epochs,
+    'batch_size': source_samples,
+    'learning_rate': learning_rate
+    }
     model_train(sess, x, y, preds_2, X_train, Y_train,
                 predictions_adv=[preds_2_adv_en],evaluate = evaluate_2,
                 args=train_params, rng=rng)
@@ -236,16 +235,16 @@ def main(argv=None):
 if __name__ == '__main__':
     flags.DEFINE_integer('nb_filters', 64, 'Model size multiplier')
     flags.DEFINE_integer('nb_epochs', 6, 'Number of epochs to train model')
-    flags.DEFINE_integer('batch_size', 100, 'Size of training batches')
+    flags.DEFINE_integer('batch_size', 1000, 'Size of training batches')
     flags.DEFINE_float('learning_rate', 0.001, 'Learning rate for training')
     flags.DEFINE_bool('clean_train', True, 'Train on clean examples')
     flags.DEFINE_bool('backprop_through_attack', False,
                       ('If True, backprop through adversarial example '
                        'construction process during adversarial training'))
     flags.DEFINE_integer('train_start', 0, 'start of MNIST training samples')
-    flags.DEFINE_integer('train_end', 1000, 'end of MNIST training samples')
+    flags.DEFINE_integer('train_end', 60000, 'end of MNIST training samples')
     flags.DEFINE_integer('test_start', 0, 'start of MNIST test samples')
-    flags.DEFINE_integer('test_end', 100, 'end of MNIST test samples')
+    flags.DEFINE_integer('test_end', 10000, 'end of MNIST test samples')
 
 
     tf.app.run()
